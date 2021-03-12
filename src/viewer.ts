@@ -1,5 +1,21 @@
-import { inferModelType, isTextureSource, loadCapeToCanvas, loadImage, loadSkinToCanvas, ModelType, RemoteImage, TextureSource } from "skinview-utils";
-import { NearestFilter, PerspectiveCamera, Scene, Texture, Vector2, WebGLRenderer } from "three";
+import {
+	inferModelType,
+	isTextureSource,
+	loadCapeToCanvas,
+	loadImage,
+	loadSkinToCanvas,
+	ModelType,
+	RemoteImage,
+	TextureSource,
+} from "skinview-utils";
+import {
+	NearestFilter,
+	OrthographicCamera,
+	Scene,
+	Texture,
+	Vector2,
+	WebGLRenderer,
+} from "three";
 import { RootAnimation } from "./animation.js";
 import { BackEquipment, PlayerObject } from "./model.js";
 
@@ -51,10 +67,11 @@ export interface SkinViewerOptions {
 export class SkinViewer {
 	readonly canvas: HTMLCanvasElement;
 	readonly scene: Scene;
-	readonly camera: PerspectiveCamera;
+	readonly camera: OrthographicCamera;
 	readonly renderer: WebGLRenderer;
 	readonly playerObject: PlayerObject;
 	readonly animations: RootAnimation = new RootAnimation();
+	readonly frustumSize: number;
 
 	readonly skinCanvas: HTMLCanvasElement;
 	readonly capeCanvas: HTMLCanvasElement;
@@ -65,7 +82,10 @@ export class SkinViewer {
 	private _renderPaused: boolean = false;
 
 	constructor(options: SkinViewerOptions = {}) {
-		this.canvas = options.canvas === undefined ? document.createElement("canvas") : options.canvas;
+		this.canvas =
+			options.canvas === undefined
+				? document.createElement("canvas")
+				: options.canvas;
 
 		// texture
 		this.skinCanvas = document.createElement("canvas");
@@ -78,18 +98,43 @@ export class SkinViewer {
 		this.capeTexture.magFilter = NearestFilter;
 		this.capeTexture.minFilter = NearestFilter;
 
+		if (options.width !== undefined) {
+			this.width = options.width;
+		}
+		if (options.height !== undefined) {
+			this.height = options.height;
+		}
+
 		this.scene = new Scene();
 
 		// Use smaller fov to avoid distortion
-		this.camera = new PerspectiveCamera(40);
+		const aspect = this.canvas.width / this.canvas.height;
+		this.frustumSize = 1000;
+
+		this.camera = new OrthographicCamera(
+			(this.frustumSize * aspect) / -2,
+			(this.frustumSize * aspect) / 2,
+			this.frustumSize / 2,
+			this.frustumSize / -2,
+			1,
+			1000
+		);
+
+		this.camera = new OrthographicCamera(
+			this.width / -2,
+			this.width / 2,
+			this.height / 2,
+			this.height / -2,
+			1,
+			1000
+		);
 		this.camera.position.y = -8;
 		this.camera.position.z = 60;
 
 		this.renderer = new WebGLRenderer({
 			canvas: this.canvas,
 			alpha: options.alpha !== false, // default: true
-			preserveDrawingBuffer: options.preserveDrawingBuffer === true // default: false
-
+			preserveDrawingBuffer: options.preserveDrawingBuffer === true, // default: false
 		});
 		this.renderer.setPixelRatio(window.devicePixelRatio);
 
@@ -105,13 +150,6 @@ export class SkinViewer {
 		if (options.cape !== undefined) {
 			this.loadCape(options.cape);
 		}
-		if (options.width !== undefined) {
-			this.width = options.width;
-		}
-		if (options.height !== undefined) {
-			this.height = options.height;
-		}
-
 		if (options.renderPaused === true) {
 			this._renderPaused = true;
 		} else {
@@ -135,14 +173,17 @@ export class SkinViewer {
 			this.resetSkin();
 		} else if (isTextureSource(source)) {
 			loadSkinToCanvas(this.skinCanvas, source);
-			const actualModel = model === "auto-detect" ? inferModelType(this.skinCanvas) : model;
+			const actualModel =
+				model === "auto-detect" ? inferModelType(this.skinCanvas) : model;
 			this.skinTexture.needsUpdate = true;
 			this.playerObject.skin.modelType = actualModel;
 			if (options.makeVisible !== false) {
 				this.playerObject.skin.visible = true;
 			}
 		} else {
-			return loadImage(source).then(image => this.loadSkin(image, model, options));
+			return loadImage(source).then((image) =>
+				this.loadSkin(image, model, options)
+			);
 		}
 	}
 
@@ -166,10 +207,11 @@ export class SkinViewer {
 			loadCapeToCanvas(this.capeCanvas, source);
 			this.capeTexture.needsUpdate = true;
 			if (options.makeVisible !== false) {
-				this.playerObject.backEquipment = options.backEquipment === undefined ? "cape" : options.backEquipment;
+				this.playerObject.backEquipment =
+					options.backEquipment === undefined ? "cape" : options.backEquipment;
 			}
 		} else {
-			return loadImage(source).then(image => this.loadCape(image, options));
+			return loadImage(source).then((image) => this.loadCape(image, options));
 		}
 	}
 
@@ -187,17 +229,24 @@ export class SkinViewer {
 	}
 
 	/**
-	* Renders the scene to the canvas.
-	* This method does not change the animation progress.
-	*/
+	 * Renders the scene to the canvas.
+	 * This method does not change the animation progress.
+	 */
 	render(): void {
 		this.renderer.render(this.scene, this.camera);
 	}
 
 	setSize(width: number, height: number): void {
-		this.camera.aspect = width / height;
-		this.camera.updateProjectionMatrix();
-		this.renderer.setSize(width, height);
+		if (this.camera != undefined) {
+			//this.camera.aspect = width / height;
+			const aspect = width / height;
+			this.camera.left = (-this.frustumSize * aspect) / 2;
+			this.camera.right = (this.frustumSize * aspect) / 2;
+			this.camera.top = this.frustumSize / 2;
+			this.camera.bottom = -this.frustumSize / 2;
+			this.camera.updateProjectionMatrix();
+			this.renderer.setSize(width, height);
+		}
 	}
 
 	dispose(): void {
@@ -229,7 +278,7 @@ export class SkinViewer {
 	}
 
 	get width(): number {
-		return this.renderer.getSize(new Vector2()).width;
+		return this.canvas.width;
 	}
 
 	set width(newWidth: number) {
@@ -237,7 +286,7 @@ export class SkinViewer {
 	}
 
 	get height(): number {
-		return this.renderer.getSize(new Vector2()).height;
+		return this.canvas.height;
 	}
 
 	set height(newHeight: number) {

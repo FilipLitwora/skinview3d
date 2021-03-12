@@ -1,78 +1,116 @@
 <!DOCTYPE html>
 <html>
+	<head>
+		<meta charset="utf-8" />
+		<meta http-equiv="x-ua-compatible" content="ie=edge" />
+		<meta
+			name="viewport"
+			content="width=device-width, initial-scale=1, user-scalable=no"
+		/>
+		<title>skinview3d / offscreen-render</title>
+	</head>
 
-<head>
-    <meta charset="utf-8">
-    <meta http-equiv="x-ua-compatible" content="ie=edge">
-    <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
-    <title>skinview3d / offscreen-render</title>
-</head>
+<style>
+*{
+    margin:0;
+}
+#a{
+    display:flex;
+}
+canvas{
+        tra
+}
 
-<body>
-    <div id="rendered_imgs"></div>
-    <script src="../bundles/skinview3d.bundle.js"></script>
-    <script>
-        const configurations = [
-            {
-                skin: "img/1_8_texturemap_redux.png",
-                cape: null
-            },
-            {
-                skin: "img/hacksore.png",
-                cape: "img/legacy_cape.png"
-            },
-            {
-                skin: "img/haka.png",
-                cape: "img/mojang_cape.png"
-            },
-            {
-                skin: "img/hatsune_miku.png",
-                cape: "img/mojang_cape.png",
-                backEquipment: "elytra"
-            },
-            {
-                skin: "img/ironman_hd.png",
-                cape: "img/hd_cape.png"
-            },
-            {
-                skin: "img/sethbling.png",
-                cape: null
-            }
-        ];
+</style>
+	<body>
+        <div id="a">
+            <img src="img/3d.png"></img>
+		<canvas></canvas>
 
-        (async function () {
-            const skinViewer = new skinview3d.FXAASkinViewer({
-                width: 200,
-                height: 300,
-                alpha: false,
-                renderPaused: true
-            });
-            skinViewer.renderer.setClearColor(0x5a76f3);
-            skinViewer.camera.rotation.x = -0.620;
-            skinViewer.camera.rotation.y = 0.534;
-            skinViewer.camera.rotation.z = 0.348;
-            skinViewer.camera.position.x = 30.5;
-            skinViewer.camera.position.y = 22.0;
-            skinViewer.camera.position.z = 42.0;
+		<div id="rendered_imgs"></div>
+        </div>
+		<script src="../bundles/skinview3d.bundle.js"></script>
+		<script>
+			const scale = 30;
+			const width = scale * 17,
+				height = scale * 27;
 
-            for (const config of configurations) {
-                await Promise.all([
-                    skinViewer.loadSkin(config.skin),
-                    skinViewer.loadCape(config.cape, { backEquipment: config.backEquipment })
-                ]);
-                skinViewer.render();
-                const image = skinViewer.canvas.toDataURL();
+			const configurations = [
+				{
+                    skin: "img/blue.png",
+					cape: null,
+				},
+				{
+					skin: "img/hacksore.png",
+                    cape: "img/blue.png",
+				},
+				{
+					skin: "img/haka.png",
+					cape: "img/mojang_cape.png",
+				},
+				{
+					skin: "img/hatsune_miku.png",
+					cape: "img/mojang_cape.png",
+					backEquipment: "elytra",
+				},
+				{
+					skin: "img/ironman_hd.png",
+					cape: "img/hd_cape.png",
+				},
+				{
+					skin: "img/sethbling.png",
+					cape: null,
+				},
+			];
 
-                const imgElement = document.createElement("img");
-                imgElement.src = image;
-                imgElement.width = skinViewer.width;
-                imgElement.height = skinViewer.height;
-                document.getElementById("rendered_imgs").appendChild(imgElement);
-            }
+			(async () => {
+				skinViewer = new skinview3d.FXAASkinViewer({
+                             canvas: document.querySelector("canvas"),
+					width,
+					height,
+                    alpha: true,
+                    renderPaused: false,
+				});
+                         const controls = skinview3d.createOrbitControls(skinViewer);
+                controls.enableRotate = true;
+    controls.enableZoom = true;
+    controls.enablePan = true;
+				skinViewer.renderer.setClearColor(0x00ff00,0);
+                skinViewer.scene.children[0].rotation.x = -0.19
 
-            skinViewer.dispose();
-        })();
-    </script>
-</body>
+				skinViewer.width = width;
+				skinViewer.height = height;
 
+				skinViewer.camera.zoom = 59.9;
+				skinViewer.camera.rotation.x = 2.790699038330111;
+				skinViewer.camera.rotation.y = 0.38917793646830634;
+				skinViewer.camera.rotation.z = -3.003589090121879;
+
+				skinViewer.camera.position.x = 21.34764419026219 ;
+				skinViewer.camera.position.y = -26.80356748824638;
+				skinViewer.camera.position.z = -53.00331594480487;
+
+			         skinViewer.camera.updateProjectionMatrix();
+
+
+				<!--await skinViewer.loadSkin(configurations[1].skin);-->
+				await skinViewer.loadCape(configurations[1].cape, {
+					backEquipment: configurations[1].backEquipment,
+				});
+
+            <!--skinViewer.render();-->
+
+            <!--const image = skinViewer.canvas.toDataURL();-->
+
+            <!--const imgElement = document.createElement("img");-->
+            <!--imgElement.src = image;-->
+            <!--imgElement.width = 510;-->
+            <!--imgElement.height = 810;-->
+            <!--document.getElementById("rendered_imgs").appendChild(imgElement);-->
+
+            <!--skinViewer.dispose();-->
+
+			})();
+		</script>
+	</body>
 </html>
